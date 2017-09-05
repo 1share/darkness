@@ -14,6 +14,7 @@ local function update_cache()
                 return
         end
 
+	local result = redis.hgetall_k("stock_infos")
         stock_cache.cache_stock_infos = result
 end
 
@@ -26,8 +27,11 @@ local function update()
 	end
 
 	last_update_time = ctime
-
+	--#lua_code_cache off;
 	ngx.timer.at(1, update_cache)
+
+	--lua_code_cache off;
+	--update_cache() 
 
 end
 

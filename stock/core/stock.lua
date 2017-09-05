@@ -14,20 +14,53 @@ local function format_stock_info(result)
 	end
 end
 
+local function parse_args_list(list)
+	return utils.split(list, ",")
+end
+
 local function stock_server()                        
 	--local result = redis.hgetall_k("stock_infos")
 
-	cache.update()
-	local stock_infos = cache.get_stock_infos()
-
         local request_infos = {}
+	local args
 	local i = 1
-        for k, v in ipairs(stock_infos) do
-		if i%2 == 1  then
-        		table.insert(request_infos, {func = http.query_http, list = v})
+
+	local method = ngx.req.get_method()
+
+	if method == "POST" then
+		ngx.req.read_body()  
+		-- get post args from body table
+        	args = ngx.req.get_post_args()
+
+		-- get post args from body string
+		-- ngx.req.set_uri_args(ngx.req.get_body_data())
+		-- args = ngx.req.get_uri_args()
+	else
+		args = ngx.req.get_uri_args()
+	end
+
+	if args and args.list then
+		local lists = parse_args_list(args.list)
+		if not next(lists) or lists[1]=="" then
+			return
+		end		
+
+		for k,v in ipairs(lists) do
+			table.insert(request_infos, {func = http.query_http, list = v})
 		end
-		i = i + 1
-        end
+	else
+                cache.update()
+                local stock_infos = cache.get_stock_infos()
+
+                for k, v in ipairs(stock_infos) do
+                        if i%2 == 1  then
+                                table.insert(request_infos, {func = http.query_http, list = v})
+                        end
+                        i = i + 1
+                end
+
+
+	end
 
 	local result = {}
 	for i = 1, #request_infos do
